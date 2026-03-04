@@ -2,16 +2,26 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
 
-test('landing page fetches data and behaves like a Netflix row layout', async ({ page }) => {
+test('auth flow and landing behaves like a Netflix row layout', async ({ page }) => {
   const omdbSeen = new Set<string>()
 
   page.on('request', (req) => {
     if (req.url().includes('omdbapi.com')) omdbSeen.add(req.url())
   })
 
-  await page.goto('/')
+  await page.goto('/register')
+  await page.locator('input[type="email"]').fill('playwright@example.com')
+  await page.locator('input[type="password"]').fill('pw123456')
+  await page.locator('.auth__btn').click()
+  await expect(page.locator('.toast--success')).toContainText('Account created successfully')
+  await page.waitForURL('**/login')
+  await page.locator('input[type="email"]').fill('playwright@example.com')
+  await page.locator('input[type="password"]').fill('pw123456')
+  await page.locator('.auth__btn').click()
+  await expect(page.locator('.toast--success')).toContainText('Login successfully')
+  await page.waitForURL('**/')
 
-  await expect(page.locator('.nav__logo')).toHaveText('NETFLIX')
+  await expect(page.locator('.nav__logo')).toHaveText('STREAMX')
   await expect(page.locator('.hero')).toBeVisible()
 
   // Wait for hero to resolve (it starts at "Loading…")
@@ -36,4 +46,3 @@ test('landing page fetches data and behaves like a Netflix row layout', async ({
   fs.mkdirSync(outDir, { recursive: true })
   await page.screenshot({ path: path.join(outDir, 'landing.png'), fullPage: true })
 })
-
